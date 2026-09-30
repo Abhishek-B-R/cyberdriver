@@ -2476,6 +2476,17 @@ def _canonicalize_keyboard_key(key: str) -> str:
     return raw
 
 
+def _pyautogui_key_name(key: str) -> str:
+    """Translate a canonical key name to the name PyAutoGUI expects on this OS.
+
+    PyAutoGUI's macOS backend has no 'win' key and silently ignores it, so the
+    canonical 'win' (cmd, command, meta, super) has to be sent as 'command'.
+    """
+    if key == 'win' and platform.system() == "Darwin":
+        return 'command'
+    return key
+
+
 class XDOParser:
     """Parse XDO-style keyboard sequences like 'ctrl+c ctrl+v'."""
     
@@ -2534,10 +2545,11 @@ def execute_xdo_sequence(sequence: str):
     # Fallback: use PyAutoGUI (for macOS/Linux or if SendInput fails)
     for group in command_groups:
         for event in group:
+            key = _pyautogui_key_name(event.key)
             if event.down:
-                pyautogui.keyDown(event.key)
+                pyautogui.keyDown(key)
             else:
-                pyautogui.keyUp(event.key)
+                pyautogui.keyUp(key)
 
 
 def execute_xdo_sequence_state_change(sequence: str, down: bool):
@@ -2595,10 +2607,11 @@ def execute_xdo_sequence_state_change(sequence: str, down: bool):
             print(f"Warning: SendInput failed ({e}), falling back to PyAutoGUI")
 
     for event in target_events:
+        key = _pyautogui_key_name(event.key)
         if event.down:
-            pyautogui.keyDown(event.key)
+            pyautogui.keyDown(key)
         else:
-            pyautogui.keyUp(event.key)
+            pyautogui.keyUp(key)
 
 
 # -----------------------------------------------------------------------------

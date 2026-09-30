@@ -23,6 +23,8 @@ TARGET_FUNCTIONS = {
     "_normalize_xdo_sequence",
     "_canonicalize_keyboard_key",
     "execute_xdo_sequence",
+    "execute_xdo_sequence_state_change",
+    "_pyautogui_key_name",
     "_press_key_with_scancode",
 }
 TARGET_CLASSES = {"KeyEvent", "XDOParser"}
@@ -110,6 +112,32 @@ class KeyboardAliasTests(unittest.TestCase):
                 ("up", "win"),
                 ("down", "pagedown"),
                 ("up", "pagedown"),
+            ],
+        )
+
+    def test_fallback_backend_sends_command_key_on_macos(self):
+        namespace = _load_keyboard_namespace()
+        recorded_calls = []
+
+        namespace["platform"] = types.SimpleNamespace(system=lambda: "Darwin")
+        namespace["pyautogui"] = types.SimpleNamespace(
+            keyDown=lambda key: recorded_calls.append(("down", key)),
+            keyUp=lambda key: recorded_calls.append(("up", key)),
+        )
+
+        namespace["execute_xdo_sequence"]("cmd+c")
+        namespace["execute_xdo_sequence_state_change"]("command", True)
+        namespace["execute_xdo_sequence_state_change"]("command", False)
+
+        self.assertEqual(
+            recorded_calls,
+            [
+                ("down", "command"),
+                ("down", "c"),
+                ("up", "c"),
+                ("up", "command"),
+                ("down", "command"),
+                ("up", "command"),
             ],
         )
 
